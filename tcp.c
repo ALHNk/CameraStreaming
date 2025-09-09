@@ -15,13 +15,15 @@
 #define HEIGHT 480
 #define BUFFER_COUNT 4
 
+#define VIDEO_PATH   "/dev/video0"
+
 struct buffer {
     void   *start;
     size_t  length;
 };
 
 int main() {
-    int fd = open("/dev/video2", O_RDWR);
+    int fd = open(VIDEO_PATH, O_RDWR);
     if (fd < 0) { perror("open video"); return 1; }
 
     struct v4l2_format fmt = {0};
