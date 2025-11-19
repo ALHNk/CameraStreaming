@@ -5,18 +5,30 @@
 #include "udp.h"
 
 // #define SECRET "Camera"
-#define PORT 5000
+#define DEFAULT_PORT 5000
+#define DEFAULT_DEVICE "/dev/video2"
 
-int main() {
-
-    int fd = camera_open("/dev/video2");
+int main(int argc, char *argv[]) {
+    char *device;
+    int port;
+    if(argc < 3)
+    {
+        device =  DEFAULT_DEVICE;
+        port = DEFAULT_PORT;
+    }
+    else 
+    {
+        device =  argv[1];
+        port = atoi(argv[2]);
+    }
+    int fd = camera_open(device);
     if (fd < 0) return 1;
 
     struct buffer *buffers;
     int buffer_count;
     if (camera_start(fd, &buffers, &buffer_count) < 0) return 1;
 
-    int sockfd = udp_init(PORT);
+    int sockfd = udp_init(port);
     if (sockfd < 0) return 1;
 
     printf("Streaming started (UDP)...\n");
@@ -25,6 +37,7 @@ int main() {
     size_t size;
     while (1) {
         if (camera_capture(fd, buffers, buffer_count, &frame, &size) == 0) {
+            printf("%ld \n", size);
             udp_send(sockfd, frame, size);
         }
         usleep(1000); // reduce CPU load
