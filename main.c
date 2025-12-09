@@ -5,8 +5,8 @@
 #include "udp.h"
 
 // #define SECRET "Camera"
-#define DEFAULT_PORT 5000
-#define DEFAULT_DEVICE "/dev/video2"
+#define DEFAULT_PORT 5001
+#define DEFAULT_DEVICE "/dev/video4"
 
 int main(int argc, char *argv[]) {
     char *device;
@@ -37,7 +37,6 @@ int main(int argc, char *argv[]) {
     size_t size;
     while (1) {
         if (camera_capture(fd, buffers, buffer_count, &frame, &size) == 0) {
-            printf("%ld \n", size);
             udp_send(sockfd, frame, size);
         }
         usleep(1000); // reduce CPU load
