@@ -2,47 +2,34 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <arpa/inet.h>
 #include <unistd.h>
 
-static struct sockaddr_in server_addr;
 
-int udp_init(int port) {
-    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0) { perror("socket"); return -1; }
-     
+struct udp_sender udp_init(int port) {
+    struct udp_sender u;
+    u.sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (u.sockfd < 0) perror("socket");
+
     int opt = 1;
-    
-    if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &opt, sizeof(opt)) < 0) {
-        perror("setsockopt broadcast");
-        close(sockfd);
-        return -1;
-    }
+    setsockopt(u.sockfd, SOL_SOCKET, SO_BROADCAST, &opt, sizeof(opt));
 
-    memset(&server_addr, 0, sizeof(server_addr));   
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(port);
-    server_addr.sin_addr.s_addr = inet_addr("255.255.255.255");
+    memset(&u.addr, 0, sizeof(u.addr));   
+    u.addr.sin_family = AF_INET;
+    u.addr.sin_port = htons(port);
+    u.addr.sin_addr.s_addr = inet_addr("255.255.255.255");
 
-    // if(bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
-    // {
-    //     perror("bind failed");
-    //     close(sockfd);
-    //     exit(EXIT_FAILURE);
-    // }
+    printf("UDP sender on port %d\n", port);
 
-    printf("UDP server started at port: %d \n", port);
-
-    return sockfd;
+    return u;
 }
 
-int udp_send(int sockfd, const void *data, size_t size) {
-    ssize_t sent = sendto(sockfd, data, size, 0,
-                          (struct sockaddr *)&server_addr, sizeof(server_addr));
-    if (sent < 0) { perror("sendto"); return -1; }
+int udp_send(struct udp_sender *u, const void *data, size_t size) {
+    ssize_t sent = sendto(u->sockfd, data, size, 0,
+                          (struct sockaddr *)&u->addr, sizeof(u->addr));
+    if (sent < 0) perror("sendto");
     return 0;
 }
 
-void udp_close(int sockfd) {
-    close(sockfd);
+void udp_close(struct udp_sender *u) {
+    close(u->sockfd);
 }
