@@ -5,6 +5,9 @@
 #include "camera.h"
 #include "udp.h"
 
+#define FIRST_CAMERA "/dev/video2"
+#define SECOND_CAMERA "/dev/video0"
+
 struct cam_thread_arg {
     const char *device;
     int port;
@@ -41,8 +44,8 @@ void *camera_thread(void *arg) {
 int main(int argc, char *argv[]) {
     pthread_t t1, t2;
 
-    struct cam_thread_arg cam1 = { "/dev/video2", 5000 };
-    struct cam_thread_arg cam2 = { "/dev/video4", 5001 };
+    struct cam_thread_arg cam1 = { FIRST_CAMERA, 5000 };
+    struct cam_thread_arg cam2 = { SECOND_CAMERA, 5001 };
 
     if (argc == 5) {
         cam1.device = argv[1];
