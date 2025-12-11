@@ -8,6 +8,9 @@
 #define FIRST_CAMERA "/dev/video2"
 #define SECOND_CAMERA "/dev/video0"
 
+extern int defish(unsigned char* in_data, size_t in_size,
+                  unsigned char** out_data, size_t* out_size);
+
 struct cam_thread_arg {
     const char *device;
     int port;
@@ -29,8 +32,19 @@ void *camera_thread(void *arg) {
     size_t size;
 
     while (1) {
-        if (camera_capture(fd, buffers, buffer_count, &frame, &size) == 0) {
-            udp_send(&sender, frame, size);
+        if (camera_capture(fd, buffers, buffer_count, &frame, &size) == 0) 
+        {
+            unsigned char* fixed = NULL;
+            size_t fixed_size = 0;
+
+            if (defish((unsigned char*)frame, size, &fixed, &fixed_size) == 0) {
+                udp_send(&sender, fixed, fixed_size);
+                printf("Good is sended\n");
+                free(fixed); 
+            } else {
+                udp_send(&sender, frame, size);
+                printf("Error sending fisheye\n");
+            }
         }
         usleep(1000);
     }

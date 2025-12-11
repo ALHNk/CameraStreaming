@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
-
 int camera_open(const char *device) {
     int fd = open(device, O_RDWR);
     if (fd < 0) perror("open camera");
@@ -61,10 +60,6 @@ int camera_capture(int fd, struct buffer *buffers, int buffer_count, void **fram
     return 0;
 }
 
-int camera_capture_defish(int fd, struct buffer *buffers, int buffer_count, void **frame_out, size_t *size_out)
-{
-    
-}
 
 
 void camera_release(int fd, struct buffer *buffers, int buffer_count) {

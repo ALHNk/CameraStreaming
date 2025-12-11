@@ -3,3 +3,4 @@ camera.o
 udp.o
 streamer
 tcp
+defsih.o
