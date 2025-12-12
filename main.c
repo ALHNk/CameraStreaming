@@ -7,7 +7,7 @@
 
 #define FIRST_CAMERA "/dev/video2"
 #define SECOND_CAMERA "/dev/video4"
-// #define DEST_IP "10.63.119.134"
+#define DEST_IP "10.63.119.122"
 
 struct cam_thread_arg {
     const char *device;
@@ -24,15 +24,15 @@ void *camera_thread(void *arg) {
     int buffer_count;
     if (camera_start(fd, &buffers, &buffer_count) < 0) pthread_exit(NULL);
 
-    struct udp_sender sender = udp_init(cfg->port);
+    struct udp_sender sender = udp_init(cfg->port, DEST_IP);
 
     void *frame;
     size_t size;
 
     while (1) {
         if (camera_capture(fd, buffers, buffer_count, &frame, &size) == 0) {
-            // udp_send(&sender, frame, size);
-            udp_send_fragmented(&sender, frame, size);
+            udp_send(&sender, frame, size);
+            // udp_send_fragmented(&sender, frame, size);
         }
         // usleep(1000);
     }

@@ -6,14 +6,18 @@
 #include <sys/socket.h>
 
 
-struct udp_sender udp_init(int port) {
+struct udp_sender udp_init(int port, const char* dest_ip) {
     struct udp_sender u;
     u.sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (u.sockfd < 0) perror("socket");
 
 
-    int opt = 1;
-    setsockopt(u.sockfd, SOL_SOCKET, SO_BROADCAST, &opt, sizeof(opt));
+    if(strcmp(dest_ip, "255.255.255.255" == 0))
+    {
+        int opt = 1;
+        setsockopt(u.sockfd, SOL_SOCKET, SO_BROADCAST, &opt, sizeof(opt));
+    }
+    
 
     // INCREASE SEND BUFFER SIZE
     int sndbuf = 1024 * 1024; // 1MB buffer
@@ -36,7 +40,7 @@ struct udp_sender udp_init(int port) {
     memset(&u.addr, 0, sizeof(u.addr));   
     u.addr.sin_family = AF_INET;
     u.addr.sin_port = htons(port);
-    u.addr.sin_addr.s_addr = inet_addr("255.255.255.255");
+    u.addr.sin_addr.s_addr = inet_addr(dest_ip);
 
     printf("UDP sender on port %d\n", port);
 
