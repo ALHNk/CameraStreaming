@@ -11,10 +11,7 @@
 #define FIRST_STREAM_PORT 5001 
 #define SECOND_STREAM_PORT 5002 
 
-extern int defish(unsigned char* in_data, size_t in_size,
-                  unsigned char** out_data, size_t* out_size);
-
-char* dest_ip = NULL;
+char* dest_ip;
 
 struct cam_thread_arg {
     const char *device;
@@ -23,71 +20,50 @@ struct cam_thread_arg {
 
 void *camera_thread(void *arg) {
     struct cam_thread_arg *cfg = arg;
-    
-    // Wait until discovery is complete
+
     while (dest_ip == NULL) {
-        usleep(100000); // 100ms
+        usleep(100000); 
     }
-    
-    printf("[%s] Starting stream to %s:%d\n", cfg->device, dest_ip, cfg->port);
-    
+
     int fd = camera_open(cfg->device);
     if (fd < 0) pthread_exit(NULL);
-    
+
     struct buffer *buffers;
     int buffer_count;
-    if (camera_start(fd, &buffers, &buffer_count) < 0) {
-        close(fd);
-        pthread_exit(NULL);
-    }
-    
+    if (camera_start(fd, &buffers, &buffer_count) < 0) pthread_exit(NULL);
+
     struct udp_sender sender = udp_init(cfg->port, dest_ip);
-    if (sender.sockfd < 0) {
-        camera_release(fd, buffers, buffer_count);
-        pthread_exit(NULL);
-    }
-    
+
     void *frame;
     size_t size;
-    int frame_count = 0;
-    
+
     while (1) {
         if (camera_capture(fd, buffers, buffer_count, &frame, &size) == 0) {
-            unsigned char* fixed = NULL;
-            size_t fixed_size = 0;
-            
-            if (defish((unsigned char*)frame, size, &fixed, &fixed_size) == 0) {
-                udp_send(&sender, fixed, fixed_size);
-                free(fixed);
-            } else {
-                udp_send(&sender, frame, size);
-            }
-            
-            frame_count++;
-            if (frame_count % 60 == 0) {
-                printf("[%s] Sent %d frames\n", cfg->device, frame_count);
-            }
+            udp_send(&sender, frame, size);
+            // udp_send_fragmented(&sender, frame, size);
         }
+        // usleep(1000);
     }
-    
+
     camera_release(fd, buffers, buffer_count);
     udp_close(&sender);
+
     return NULL;
 }
 
 int main(int argc, char *argv[]) {
     pthread_t t1, t2;
-    
+
     struct cam_thread_arg cam1 = { FIRST_CAMERA, FIRST_STREAM_PORT };
-    struct cam_thread_arg cam2 = { SECOND_CAMERA, SECOND_STREAM_PORT };
-    
+    struct cam_thread_arg cam2 = { SECOND_CAMERA,  SECOND_STREAM_PORT };
+
     if (argc == 5) {
         cam1.device = argv[1];
         cam1.port = atoi(argv[2]);
         cam2.device = argv[3];
         cam2.port = atoi(argv[4]);
     }
-    
+
     printf("Waiting for client discovery on port %d...\n", DISCOVERY_PORT);
     dest_ip = get_client_ip(DISCOVERY_PORT);
     
@@ -95,16 +71,13 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Failed to discover client\n");
         return 1;
     }
-    
-    printf("Client discovered: %s\n", dest_ip);
-    printf("Starting camera streams...\n");
-    
+
+
     pthread_create(&t1, NULL, camera_thread, &cam1);
     pthread_create(&t2, NULL, camera_thread, &cam2);
-    
+
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
-    
-    free(dest_ip);
+
     return 0;
 }
