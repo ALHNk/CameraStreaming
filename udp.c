@@ -5,8 +5,56 @@
 #include <unistd.h>
 #include <sys/socket.h>
 
+char* get_client_ip(int discovery_port) {
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        perror("discovery socket");
+        return NULL;
+    }
+    
+    struct sockaddr_in bind_addr;
+    memset(&bind_addr, 0, sizeof(bind_addr));
+    bind_addr.sin_family = AF_INET;
+    bind_addr.sin_addr.s_addr = INADDR_ANY;
+    bind_addr.sin_port = htons(discovery_port);
+    
+    if (bind(sockfd, (struct sockaddr *)&bind_addr, sizeof(bind_addr)) < 0) {
+        perror("bind discovery");
+        close(sockfd);
+        return NULL;
+    }
+    
+    printf("Waiting for discovery on port %d...\n", discovery_port);
+    
+    char buffer[64];
+    struct sockaddr_in client_addr;
+    socklen_t addr_len = sizeof(client_addr);
+    
+    while (1) {
+        ssize_t n = recvfrom(sockfd, buffer, sizeof(buffer), 0,
+                             (struct sockaddr *)&client_addr, &addr_len);
+        
+        if (n > 0 && strncmp(buffer, "DISCOVER", 8) == 0) {
+            // Send ACK back to client
+            const char *ack = "ACK";
+            sendto(sockfd, ack, strlen(ack), 0,
+                   (struct sockaddr *)&client_addr, sizeof(client_addr));
+            
+            // Extract client IP
+            char *client_ip = malloc(INET_ADDRSTRLEN);
+            inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
+            
+            printf("Client discovered: %s\n", client_ip);
+            close(sockfd);
+            return client_ip;
+        }
+    }
+    
+    close(sockfd);
+    return NULL;
+}
 
-struct udp_sender udp_init(int port, const char* dest_ip) {
+struct udp_sender udp_init(int port, char* dest_ip) {
     struct udp_sender u;
     u.sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (u.sockfd < 0) perror("socket");
