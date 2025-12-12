@@ -11,6 +11,7 @@ struct udp_sender udp_init(int port) {
     u.sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (u.sockfd < 0) perror("socket");
 
+
     int opt = 1;
     setsockopt(u.sockfd, SOL_SOCKET, SO_BROADCAST, &opt, sizeof(opt));
 
@@ -46,6 +47,29 @@ int udp_send(struct udp_sender *u, const void *data, size_t size) {
     ssize_t sent = sendto(u->sockfd, data, size, 0,
                           (struct sockaddr *)&u->addr, sizeof(u->addr));
     if (sent < 0) perror("sendto");
+    return 0;
+}
+
+
+int udp_send_fragmented(struct udp_sender *u, const void *data, size_t size) {
+    const unsigned char *ptr = data;
+    size_t remaining = size;
+    
+    while (remaining > 0) {
+        size_t chunk = (remaining > MAX_UDP_PACKET) ? MAX_UDP_PACKET : remaining;
+        
+        ssize_t sent = sendto(u->sockfd, ptr, chunk, 0,
+                              (struct sockaddr *)&u->addr, sizeof(u->addr));
+        if (sent < 0) {
+            perror("sendto");
+            return -1;
+        }
+        
+        ptr += chunk;
+        remaining -= chunk;
+        
+        usleep(100); // Small delay between fragments
+    }
     return 0;
 }
 
