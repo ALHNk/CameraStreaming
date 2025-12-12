@@ -6,7 +6,7 @@
 #include "udp.h"
 
 #define FIRST_CAMERA "/dev/video2"
-#define SECOND_CAMERA "/dev/video4"
+#define SECOND_CAMERA "/dev/video0"
 #define DEST_IP "10.63.119.122"
 
 struct cam_thread_arg {

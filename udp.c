@@ -12,7 +12,7 @@ struct udp_sender udp_init(int port, const char* dest_ip) {
     if (u.sockfd < 0) perror("socket");
 
 
-    if(strcmp(dest_ip, "255.255.255.255" == 0))
+    if(strcmp(dest_ip, "255.255.255.255") == 0)
     {
         int opt = 1;
         setsockopt(u.sockfd, SOL_SOCKET, SO_BROADCAST, &opt, sizeof(opt));
