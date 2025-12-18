@@ -40,14 +40,23 @@ void *camera_thread(void *arg) {
     void *frame;
     size_t size;
 
-    while (1) {
-        if (camera_capture(fd, buffers, buffer_count, &frame, &size) == 0) {
-            udp_send(&sender, frame, size);
-            // udp_send_fragmented(&sender, frame, size);
+     while (1) {
+        if (camera_capture(fd, buffers, buffer_count, &frame, &size) == 0) 
+        {
+            unsigned char* fixed = NULL;
+            size_t fixed_size = 0;
+
+            if (defish((unsigned char*)frame, size, &fixed, &fixed_size) == 0) {
+                udp_send(&sender, fixed, fixed_size);
+                printf("Good is sended\n");
+                free(fixed); 
+            } else {
+                udp_send(&sender, frame, size);
+                printf("Error sending fisheye\n");
+            }
         }
         // usleep(1000);
     }
-
     camera_release(fd, buffers, buffer_count);
     udp_close(&sender);
 
