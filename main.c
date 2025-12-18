@@ -48,7 +48,7 @@ void *camera_thread(void *arg) {
 
             if (defish((unsigned char*)frame, size, &fixed, &fixed_size) == 0) {
                 udp_send(&sender, fixed, fixed_size);
-                printf("Good is sended\n");
+                // printf("Good is sended\n");
                 free(fixed); 
             } else {
                 udp_send(&sender, frame, size);
