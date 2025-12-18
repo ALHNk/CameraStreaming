@@ -13,6 +13,9 @@
 
 char* dest_ip;
 
+extern int defish(unsigned char* in_data, size_t in_size,
+                      unsigned char** out_data, size_t* out_size);
+
 struct cam_thread_arg {
     const char *device;
     int port;
