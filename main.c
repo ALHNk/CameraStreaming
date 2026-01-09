@@ -27,6 +27,7 @@ struct cam_thread_arg {
 
 void *control_thread(void *arg)
 {
+    printf("ControlThread started \n");
     int sock = *(int*)arg;
     char buf[1];
 
@@ -110,17 +111,25 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    int tcp_sock = tcp_init();
+    if (tcp_sock < 0) {
+        fprintf(stderr, "TCP init failed, retrying...\n");
+        dest_ip = NULL;
+        sleep(1); 
+        goto discover_again;
+    }
+    pthread_create(&control, NULL, control_thread, &tcp_sock);
+
 
     pthread_create(&t1, NULL, camera_thread, &cam1);
     pthread_create(&t2, NULL, camera_thread, &cam2);
 
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
+    pthread_join(control, NULL);
 
-    int tcp_sock = tcp_init();
-    pthread_create(&control, NULL, control_thread, &tcp_sock);
-    pthread_join(tcp_sock, NULL);
-
+    
+    tcp_close(tcp_sock);
     dest_ip = NULL;
 
     goto discover_again;
