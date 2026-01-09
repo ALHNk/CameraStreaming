@@ -2,8 +2,10 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdatomic.h>
 #include "camera.h"
 #include "udp.h"
+#include "tcp.h"
 
 #define FIRST_CAMERA "/dev/video2"
 #define SECOND_CAMERA "/dev/video0"
@@ -12,6 +14,7 @@
 #define SECOND_STREAM_PORT 5002 
 
 char* dest_ip;
+atomic_bool client_alive = ATOMIC_VAR_INIT(0);
 
 extern int defish(unsigned char* in_data, size_t in_size,
                       unsigned char** out_data, size_t* out_size);
@@ -21,7 +24,28 @@ struct cam_thread_arg {
     int port;
 };
 
-void *camera_thread(void *arg) {
+
+void *control_thread(void *arg)
+{
+    printf("ControlThread started \n");
+    int sock = *(int*)arg;
+    char buf[1];
+
+    while(1)
+    {
+        int r = recv(sock, buf, 1, 0);
+        if(r <= 0)
+        {
+            atomic_store(&client_alive, 0);
+            break;
+        }
+    }
+    tcp_close(sock);
+    return NULL;
+}
+
+void *camera_thread(void *arg) 
+{
     struct cam_thread_arg *cfg = arg;
 
     while (dest_ip == NULL) {
@@ -40,7 +64,7 @@ void *camera_thread(void *arg) {
     void *frame;
     size_t size;
 
-     while (1) {
+     while (atomic_load(&client_alive)) {
         if (camera_capture(fd, buffers, buffer_count, &frame, &size) == 0) 
         {
             unsigned char* fixed = NULL;
@@ -64,7 +88,7 @@ void *camera_thread(void *arg) {
 }
 
 int main(int argc, char *argv[]) {
-    pthread_t t1, t2;
+    pthread_t t1, t2, control;
 
     struct cam_thread_arg cam1 = { FIRST_CAMERA, FIRST_STREAM_PORT };
     struct cam_thread_arg cam2 = { SECOND_CAMERA,  SECOND_STREAM_PORT };
@@ -76,13 +100,25 @@ int main(int argc, char *argv[]) {
         cam2.port = atoi(argv[4]);
     }
 
+    discover_again: 
+
     printf("Waiting for client discovery on port %d...\n", DISCOVERY_PORT);
     dest_ip = get_client_ip(DISCOVERY_PORT);
+    atomic_store(&client_alive, 1);
     
     if (dest_ip == NULL) {
         fprintf(stderr, "Failed to discover client\n");
         return 1;
     }
+
+    int tcp_sock = tcp_init();
+    if (tcp_sock < 0) {
+        fprintf(stderr, "TCP init failed, retrying...\n");
+        dest_ip = NULL;
+        sleep(1); 
+        goto discover_again;
+    }
+    pthread_create(&control, NULL, control_thread, &tcp_sock);
 
 
     pthread_create(&t1, NULL, camera_thread, &cam1);
@@ -90,6 +126,13 @@ int main(int argc, char *argv[]) {
 
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
+    pthread_join(control, NULL);
+
+    
+    tcp_close(tcp_sock);
+    dest_ip = NULL;
+
+    goto discover_again;
 
     return 0;
 }

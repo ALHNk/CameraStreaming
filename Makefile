@@ -5,7 +5,7 @@ CXXFLAGS = -Wall -Wextra -O2 `pkg-config --cflags opencv4`
 LDFLAGS = `pkg-config --libs opencv4`
 
 TARGET = streamer
-SRC_C = main.c camera.c udp.c
+SRC_C = main.c camera.c udp.c tcp.c
 SRC_CPP = defish.cpp
 
 OBJ_C = $(SRC_C:.c=.o)
