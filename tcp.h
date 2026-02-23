@@ -11,7 +11,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-int tcp_init();
-int tcp_close(int client_fd);
+int tcp_connect(const char* dest_ip, int port); // Jetson connects OUT to Quest
+int tcp_close(int fd);
 
 #endif

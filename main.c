@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    int tcp_sock = tcp_init();
+    int tcp_sock = tcp_connect(dest_ip, 12345);
     if (tcp_sock < 0) {
         fprintf(stderr, "TCP init failed, retrying...\n");
         dest_ip = NULL;
