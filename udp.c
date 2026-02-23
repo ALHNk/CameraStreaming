@@ -102,25 +102,28 @@ int udp_send(struct udp_sender *u, const void *data, size_t size) {
     return 0;
 }
 
+static uint32_t frame_counter = 0;
 
 int udp_send_fragmented(struct udp_sender *u, const void *data, size_t size) {
     const unsigned char *ptr = data;
-    size_t remaining = size;
-    
-    while (remaining > 0) {
-        size_t chunk = (remaining > MAX_UDP_PACKET) ? MAX_UDP_PACKET : remaining;
-        
-        ssize_t sent = sendto(u->sockfd, ptr, chunk, 0,
+    uint16_t total_chunks = (uint16_t)((size + MAX_UDP_PAYLOAD - 1) / MAX_UDP_PAYLOAD);
+    uint32_t frame_id = frame_counter++;
+
+    for (uint16_t i = 0; i < total_chunks; i++) {
+        size_t chunk_size = (size > MAX_UDP_PAYLOAD) ? MAX_UDP_PAYLOAD : size;
+
+        unsigned char packet[MAX_UDP_PACKET];
+        UdpChunkHeader hdr = { htonl(frame_id), htons(i), htons(total_chunks) };
+        memcpy(packet, &hdr, sizeof(hdr));
+        memcpy(packet + sizeof(hdr), ptr, chunk_size);
+
+        ssize_t sent = sendto(u->sockfd, packet, sizeof(hdr) + chunk_size, 0,
                               (struct sockaddr *)&u->addr, sizeof(u->addr));
-        if (sent < 0) {
-            perror("sendto");
-            return -1;
-        }
-        
-        ptr += chunk;
-        remaining -= chunk;
-        
-        usleep(100); // Small delay between fragments
+        if (sent < 0) { perror("sendto"); return -1; }
+
+        ptr += chunk_size;
+        size -= chunk_size;
+        usleep(200); // give network breathing room
     }
     return 0;
 }

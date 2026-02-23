@@ -4,7 +4,16 @@
 #include <stddef.h>
 #include <arpa/inet.h>
 
-#define MAX_UDP_PACKET 1400  
+#define MAX_UDP_PAYLOAD 1400
+#define MAX_UDP_PACKET (MAX_UDP_PAYLOAD + sizeof(UdpChunkHeader))
+
+typedef struct {
+    uint32_t frame_id;
+    uint16_t chunk_index;
+    uint16_t total_chunks;
+} UdpChunkHeader;
+
+
 
 struct udp_sender {
     int sockfd;

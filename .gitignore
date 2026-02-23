@@ -4,4 +4,4 @@ udp.o
 streamer
 tcp
 defish.o
-
+.vscode
