@@ -70,14 +70,23 @@ void *camera_thread(void *arg)
             unsigned char* fixed = NULL;
             size_t fixed_size = 0;
 
+            // if (defish((unsigned char*)frame, size, &fixed, &fixed_size) == 0) {
+            //     // udp_send(&sender, fixed, fixed_size);
+            //     udp_send_fragmented(&sender, fixed, fixed_size);
+            //     // printf("Good is sended\n");
+            //     free(fixed); 
+            // } else {
+            //     // udp_send(&sender, frame, size);
+            //     udp_send_fragmented(&sender, fixed, fixed_size);
+            //     printf("Error sending fisheye\n");
+            // }
+
             if (defish((unsigned char*)frame, size, &fixed, &fixed_size) == 0) {
-                // udp_send(&sender, fixed, fixed_size);
                 udp_send_fragmented(&sender, fixed, fixed_size);
-                // printf("Good is sended\n");
-                free(fixed); 
-            } else {
-                // udp_send(&sender, frame, size);
-                udp_send_fragmented(&sender, fixed, fixed_size);
+                free(fixed);
+            } 
+            else {
+                udp_send_fragmented(&sender, frame, size);
                 printf("Error sending fisheye\n");
             }
         }
