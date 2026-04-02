@@ -7,8 +7,8 @@
 #include "udp.h"
 #include "tcp.h"
 
-#define FIRST_CAMERA "/dev/video2"
-#define SECOND_CAMERA "/dev/video0"
+#define FIRST_CAMERA "/dev/camera_left"
+#define SECOND_CAMERA "/dev/camera_right"
 #define DISCOVERY_PORT 5000
 #define FIRST_STREAM_PORT 5001 
 #define SECOND_STREAM_PORT 5002 
