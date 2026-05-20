@@ -26,5 +26,7 @@ struct udp_sender udp_init(int port, char* dest_ip);
 int udp_send(struct udp_sender *u, const void *data, size_t size);
 int udp_send_fragmented(struct udp_sender *u, const void *data, size_t size);
 void udp_close(struct udp_sender *u);
+int udp_receive_fragmented(int sockfd, unsigned char *out_buf, size_t out_buf_size, size_t *out_size);
+int udp_bind(int port);
 
 #endif

@@ -1,10 +1,16 @@
 CC = gcc
 CXX = g++
+
+OPENCV_CFLAGS := $(shell pkg-config --cflags opencv4)
+OPENCV_LIBS := $(shell pkg-config --libs opencv4)
+
 CFLAGS = -Wall -Wextra -O2
-CXXFLAGS = -Wall -Wextra -O2 `pkg-config --cflags opencv4`
-LDFLAGS = `pkg-config --libs opencv4`
+CXXFLAGS = -Wall -Wextra -O2 $(OPENCV_CFLAGS)
+
+LDFLAGS = $(OPENCV_LIBS)
 
 TARGET = streamer
+
 SRC_C = main.c camera.c udp.c tcp.c
 SRC_CPP = defish.cpp
 
