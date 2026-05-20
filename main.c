@@ -7,15 +7,16 @@
 #include "udp.h"
 #include "tcp.h"
 
-#define FIRST_CAMERA        "/dev/camera_left"
-#define SECOND_CAMERA       "/dev/camera_right"
+#define FIRST_CAMERA        "/dev/video2"
+#define SECOND_CAMERA       "/dev/video0"
 #define DISCOVERY_PORT      5000
 #define FIRST_STREAM_PORT   5001
 #define SECOND_STREAM_PORT  5002
 #define YOLO_SEND_PORT      5010
 #define YOLO_RECV_PORT      5011
-#define YOLO_HOST           "127.0.0.1"
+#define YOLO_HOST           "172.17.0.2"
 #define RECV_BUF_SIZE       (8 * 1024 * 1024)
+
 
 char *dest_ip;
 atomic_bool client_alive = ATOMIC_VAR_INIT(0);
@@ -63,6 +64,8 @@ void *camera_thread(void *arg)
 
     int yolo_recv_sock = udp_bind(YOLO_RECV_PORT);
     if (yolo_recv_sock < 0) pthread_exit(NULL);
+    struct timeval tv = { .tv_sec = 1, .tv_usec = 0 };
+    setsockopt(yolo_recv_sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)); 
 
     unsigned char *yolo_buf = malloc(RECV_BUF_SIZE);
     if (!yolo_buf) pthread_exit(NULL);
@@ -88,11 +91,16 @@ void *camera_thread(void *arg)
             send_size = size;
         }
 
+        udp_flush(yolo_recv_sock);
         udp_send_fragmented(&sender_to_yolo, send_buf, send_size);
 
         size_t labeled_size = 0;
         if (udp_receive_fragmented(yolo_recv_sock, yolo_buf, RECV_BUF_SIZE, &labeled_size) == 0
                 && labeled_size > 0) {
+            printf("YOLO frame: %zu bytes | start: %02X %02X | end: %02X %02X\n",
+            labeled_size,
+            yolo_buf[0], yolo_buf[1],
+            yolo_buf[labeled_size - 2], yolo_buf[labeled_size - 1]);
             udp_send_fragmented(&sender_to_client, yolo_buf, labeled_size);
             // udp_send(&sender_to_client, yolo_buf, labeled_size);
         } else {
@@ -145,10 +153,10 @@ discover_again:
 
     pthread_create(&control, NULL, control_thread, &tcp_sock);
     pthread_create(&t1,      NULL, camera_thread,  &cam1);
-    pthread_create(&t2,      NULL, camera_thread,  &cam2);
+    // pthread_create(&t2,      NULL, camera_thread,  &cam2);
 
     pthread_join(t1,      NULL);
-    pthread_join(t2,      NULL);
+    // pthread_join(t2,      NULL);
     pthread_join(control, NULL);
 
     tcp_close(tcp_sock);

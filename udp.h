@@ -4,8 +4,7 @@
 #include <stddef.h>
 #include <arpa/inet.h>
 
-#define MAX_UDP_PAYLOAD 1400
-#define MAX_UDP_PACKET (MAX_UDP_PAYLOAD + sizeof(UdpChunkHeader))
+
 
 typedef struct {
     uint32_t frame_id;
@@ -28,5 +27,5 @@ int udp_send_fragmented(struct udp_sender *u, const void *data, size_t size);
 void udp_close(struct udp_sender *u);
 int udp_receive_fragmented(int sockfd, unsigned char *out_buf, size_t out_buf_size, size_t *out_size);
 int udp_bind(int port);
-
+void udp_flush(int sockfd);
 #endif

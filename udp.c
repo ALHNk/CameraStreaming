@@ -6,6 +6,9 @@
 #include <sys/socket.h>
 #include <stdint.h>
 
+#define MAX_UDP_PAYLOAD 65000
+#define MAX_UDP_PACKET (MAX_UDP_PAYLOAD + sizeof(UdpChunkHeader))
+
 char* get_client_ip(int discovery_port) {
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) {
@@ -187,6 +190,13 @@ int udp_bind(int port) {
         perror("udp_bind"); return -1;
     }
     return fd;
+}
+
+
+void udp_flush(int sockfd)
+{
+    unsigned char discard[MAX_UDP_PACKET];
+    while (recvfrom(sockfd, discard, sizeof(discard), MSG_DONTWAIT, NULL, NULL) > 0);
 }
 
 void udp_close(struct udp_sender *u) {
